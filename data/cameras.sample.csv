@@ -1,0 +1,3 @@
+id,name,location,city,lat,lng,source_type,source_url
+cam-ahm-paldi,Cam-AHM-Paldi Circle,Paldi Circle,Ahmedabad,23.0116,72.5632,http,https://live.sentinelgujarat.in/stream/4
+cam-ada-toll,Cam-ADA-Adalaj Toll,Tri Mandir Adalaj Tollnaka,Gandhinagar,23.1645,72.5810,http,https://live.sentinelgujarat.in/stream/12
