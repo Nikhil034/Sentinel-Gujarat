@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sentinel Command — How everything works (learning resource)</title>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "dark",
+      themeVariables: {
+        primaryColor: "#1d6bff",
+        primaryTextColor: "#e8eef7",
+        primaryBorderColor: "#3b82f6",
+        lineColor: "#8aa0b8",
+        secondaryColor: "#12243c",
+        tertiaryColor: "#0b1a2e",
+        fontFamily: "Inter, system-ui, sans-serif",
+      },
+    });
+  </script>
+  <style>
+    :root {
+      --bg: #0b1a2e;
+      --panel: #12243c;
+      --line: #1e3a5f;
+      --txt: #e8eef7;
+      --mut: #8aa0b8;
+      --acc: #1d6bff;
+      --ok: #7dcea0;
+      --warn: #f0c674;
+      --hot: #ff8a8a;
+      --chip: #1a2540;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      line-height: 1.55;
+    }
+    .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    nav {
+      position: sticky; top: 0; height: 100vh; overflow: auto;
+      background: #0d141f; border-right: 1px solid var(--line); padding: 18px 14px;
+    }
+    nav h2 { font-size: 13px; margin: 0 0 12px; color: #9ecbff; letter-spacing: .04em; text-transform: uppercase; }
+    nav a {
+      display: block; color: var(--mut); text-decoration: none; font-size: 13px;
+      padding: 7px 10px; border-radius: 8px;
+    }
+    nav a:hover, nav a:focus { background: #16233b; color: #fff; }
+    main { max-width: 980px; padding: 32px 36px 80px; }
+    h1 { font-size: 2rem; margin: 0 0 8px; }
+    h2 { margin: 36px 0 10px; font-size: 1.45rem; border-top: 1px solid var(--line); padding-top: 28px; }
+    h3 { margin: 22px 0 8px; font-size: 1.1rem; color: #9ecbff; }
+    p, li { color: #d5e0ee; }
+    .lead { color: var(--mut); font-size: 1.05rem; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 16px 18px; margin: 12px 0 18px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 10px 0 18px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: #9fb0c6; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #9ecbff; font-size: 0.88em; word-break: break-all; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .chip { display: inline-block; background: var(--chip); color: #8fb4ff; border-radius: 999px; padding: 2px 10px; font-size: 12px; margin: 0 4px 6px 0; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .hot { color: var(--hot); }
+    .mermaid { background: #0a1220; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 14px 0 20px; overflow-x: auto; }
+    .call { background: #0f1f38; border-left: 4px solid var(--acc); padding: 10px 14px; margin: 12px 0; border-radius: 0 10px 10px 0; }
+    .flow-step { display: flex; gap: 12px; margin: 10px 0; }
+    .num {
+      flex: 0 0 32px; height: 32px; border-radius: 50%; background: var(--acc); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+    }
+    footer { color: var(--mut); font-size: 13px; margin-top: 40px; }
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      nav { position: relative; height: auto; }
+      .grid2 { grid-template-columns: 1fr; }
+      main { padding: 20px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+<nav>
+  <h2>On this page</h2>
+  <a href="#start">1. Start here</a>
+  <a href="#two-sides">2. Frontend vs backend</a>
+  <a href="#talk">3. How they talk</a>
+  <a href="#arch">4. Architecture</a>
+  <a href="#fetch">5. Fetching live cameras</a>
+  <a href="#stream">6. Video streaming path</a>
+  <a href="#anpr">7. Capture → annotate → alert</a>
+  <a href="#images">8. Image / video formats</a>
+  <a href="#files">9. Every file and its job</a>
+  <a href="#glossary">10. Terms (ANPR, RTSP, YOLO…)</a>
+  <a href="#clicks">11. What each button does</a>
+</nav>
+<main>
+  <p class="chip">Gujarat Police Innovation Challenge 2026</p>
+  <p class="chip">Hybrid Model 1 + 2</p>
+  <p class="chip">Learning resource — matches this repo</p>
+  <h1>Sentinel Command — full BTS guide</h1>
+  <p class="lead">
+    One page that explains the whole platform in plain language: what each file does,
+    how the UI talks to Python, how official cameras are fetched, how frames become
+    annotated evidence, and what RTSP, HLS, YOLO, RapidOCR, GIS pins, and the rest actually mean.
+  </p>
+  <div class="call">
+    Open the live app at <code>http://localhost:5174</code> while you read this.
+    API docs live at <code>http://127.0.0.1:8000/docs</code>.
+    This HTML file is only a teacher — it does not replace the running app.
+  </div>
+
+  <h2 id="start">1. Start here — what we built</h2>
+  <p>
+    Gujarat has many CCTV cameras. Police need one place to <strong>see where cameras are</strong>,
+    <strong>watch feeds</strong>, <strong>read number plates</strong>, <strong>flag stolen vehicles</strong>,
+    and <strong>hunt a plate across cameras</strong>.
+  </p>
+  <p>
+    <strong>Sentinel Command</strong> is our thin command layer. We do <em>not</em> replace the government
+    video servers. We <em>consume</em> their catalogue and streams, then add GIS + ANPR + watchlist + hunt.
+  </p>
+  <table>
+    <tr><th>Layer</th><th>What it is</th><th>Who owns it</th></tr>
+    <tr><td>Official grid</td><td>Password portal, camera list, RTSP, HLS</td><td>Sentinel / Corp8 (government sandbox)</td></tr>
+    <tr><td>Our backend</td><td>Python FastAPI — login, registry, capture, YOLO, alerts</td><td>This repo <code>backend/</code></td></tr>
+    <tr><td>Our frontend</td><td>React UI — map, list, player, hunt</td><td>This repo <code>frontend/</code></td></tr>
+    <tr><td>Our disk</td><td>JSON files + JPEG snapshots + MP4 clips</td><td><code>data/</code></td></tr>
+  </table>
+
+  <h2 id="two-sides">2. Frontend vs backend (the two programs)</h2>
+  <p>
+    Think of two shops on the same street. The <strong>frontend</strong> is the shop window the officer looks at.
+    The <strong>backend</strong> is the storeroom that holds cameras, events, and AI. The window never talks to
+    YOLO directly. It only sends HTTP requests (“please detect Paldi”) and draws whatever JSON comes back.
+  </p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Frontend = browser UI</h3>
+      <p>Runs in Chrome at port <code>5174</code> (Vite + React).</p>
+      <ul>
+        <li>Draws the map, list, buttons, video player</li>
+        <li>Has no YOLO, no OpenCV, no password to the RTSP box by itself</li>
+        <li>Calls URLs like <code>/cameras</code>, <code>/hunt?plate=</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Backend = Python API</h3>
+      <p>Runs in Uvicorn at port <code>8000</code> (FastAPI).</p>
+      <ul>
+        <li>Talks to <code>cctv.corp8.cloud</code> with the grid password cookie</li>
+        <li>Opens RTSP with OpenCV, runs YOLO + RapidOCR</li>
+        <li>Reads/writes <code>data/cameras.json</code>, <code>events.json</code>, <code>watchlist.json</code></li>
+      </ul>
+    </div>
+  </div>
+  <p>
+    <strong>Port</strong> = a numbered door on your computer. Browser → door 5174. Python → door 8000.
+    They are two processes. They only meet through HTTP.
+  </p>
+
+  <h2 id="talk">3. How frontend and backend communicate</h2>
+  <p>
+    The UI never uses a special “React-to-Python cable”. It uses the same web protocol as any website: <strong>HTTP</strong>.
+    A <strong>REST API</strong> means “URLs that mean actions”: GET = read, POST = do/create, DELETE = remove.
+    Data is almost always <strong>JSON</strong> (text that looks like <code>{"cameras": [...]}</code>).
+  </p>
+  <div class="mermaid">
+sequenceDiagram
+  participant Officer
+  participant React as React UI :5174
+  participant Vite as Vite proxy
+  participant API as FastAPI :8000
+  participant Grid as cctv.corp8.cloud
+  Officer->>React: Click Fetch Sentinel grid
+  React->>Vite: POST /cameras/sentinel/import
+  Vite->>API: same request forwarded
+  API->>Grid: login cookie + GET /cameras.json
+  Grid-->>API: 30 cameras JSON
+  API-->>React: imported: 30
+  React->>Officer: pins appear on Leaflet map
+  </div>
+  <h3>Vite proxy (why we do not type :8000 in the UI)</h3>
+  <p>
+    In <code>frontend/vite.config.js</code> we say: “if the browser asks for <code>/cameras</code>,
+    secretly forward it to <code>http://127.0.0.1:8000</code>”. So React can write
+    <code>fetch("/cameras")</code> and the browser thinks it is talking to the same site
+    (no messy CORS for those paths). CORS in FastAPI is a backup if someone opens the API from another origin.
+  </p>
+  <table>
+    <tr><th>Browser asks</th><th>Vite sends to</th><th>Why</th></tr>
+    <tr><td><code>/cameras</code></td><td>FastAPI list/import</td><td>Registry</td></tr>
+    <tr><td><code>/live/sentinel-4/index.m3u8</code></td><td>HLS proxy</td><td>Play official video</td></tr>
+    <tr><td><code>/media/snapshots/...</code></td><td>JPEG files on disk</td><td>Show annotated evidence</td></tr>
+    <tr><td><code>/hunt?plate=GJ01AB1234</code></td><td>Hunt logic</td><td>Trail + CSV</td></tr>
+    <tr><td><code>/sentinel/login</code></td><td>Grid password session</td><td>Cookie on Corp8</td></tr>
+  </table>
+  <div class="call">
+    Rule of thumb: <strong>React draws. FastAPI thinks and talks to the outside world.</strong>
+    If a feature needs a government URL, a neural net, or a file on disk — it belongs in the backend.
+  </div>
+
+  <h2 id="arch">4. Architecture — who does what</h2>
+  <div class="mermaid">
+flowchart TB
+  subgraph Official["THEIR SIDE — Sentinel / Corp8"]
+    CAM[Physical CCTV in Gujarat]
+    MTX[Their ingest hub / MediaMTX-style]
+    WEB["cctv.corp8.cloud  HTTPS :443"]
+    RTSPIP["103.250.160.189 RTSP :8554"]
+    CAM --> MTX --> WEB
+    MTX --> RTSPIP
+  end
+  subgraph Ours["OUR SIDE — this laptop"]
+    UI[React + Leaflet + hls.js]
+    API[FastAPI]
+    JSON[(cameras.json / events.json / watchlist.json)]
+    JPG[(data/snapshots JPEG)]
+    MP4[(data/videos MP4)]
+    UI -->|HTTP JSON| API
+    API --> JSON
+    API --> JPG
+    MP4 --> API
+  end
+  subgraph AI["OUR AI PIPELINE"]
+    CV[OpenCV + FFmpeg]
+    YOLO[YOLOv8n vehicles]
+    OCR[RapidOCR plates]
+    CV --> YOLO --> OCR
+  end
+  WEB -->|"cameras.json + HLS + login"| API
+  RTSPIP -->|"TCP frames"| CV
+  WEB -->|"HLS proxy for player"| UI
+  OCR --> JSON
+  JSON -->|"alerts + hunt"| UI
+  </div>
+  <p>
+    Solid idea: <strong>metadata and intelligence are ours; raw 24-hour video stays theirs.</strong>
+    We only keep short JPEG samples as evidence, not a DVR.
+  </p>
+
+  <h2 id="fetch">5. Behind the scenes — fetching all live cameras</h2>
+  <p>
+    We do <strong>not</strong> walk Gujarat with a spreadsheet of 30 RTSP URLs hard-coded in React.
+    The integrator contract is: <em>start from the catalogue</em>. Camera ids can change.
+  </p>
+  <div class="flow-step"><div class="num">1</div><div>
+    <strong>Password.</strong> Portal <code>POST /auth/login</code> with the access password.
+    Server sets an HttpOnly cookie named <code>sentinel</code>. Our backend keeps that cookie in a CookieJar
+    (<code>backend/sentinel.py</code>). The browser on localhost cannot use that cookie in an iframe
+    (SameSite=Lax, different site) — that is why we proxy HLS ourselves.
+  </div></div>
+  <div class="flow-step"><div class="num">2</div><div>
+    <strong>Catalogue.</strong> <code>GET https://cctv.corp8.cloud/cameras.json</code>
+    returns a JSON <em>array</em>: <code>[{"id":"cam01","name":"01 Chiman bhai Bridge"}, ...]</code> (30 rows).
+    We map <code>cam04</code> → internal id <code>sentinel-4</code>, guess lat/lng from the name, store in
+    <code>data/cameras.json</code>.
+  </div></div>
+  <div class="flow-step"><div class="num">3</div><div>
+    <strong>Build the three official URLs</strong> (from their integrator guide, not guessed forever):
+    <ul>
+      <li>HLS (watch / fallback AI): <code>https://cctv.corp8.cloud/cam04/index.m3u8</code></li>
+      <li>RTSP (AI): <code>rtsp://103.250.160.189:8554/stream/cam04</code></li>
+      <li>WHEP (low-latency preview, unused in UI): <code>http://103.250.160.189:8889/stream/cam04/whep</code></li>
+    </ul>
+  </div></div>
+  <div class="flow-step"><div class="num">4</div><div>
+    <strong>GIS pins.</strong> Leaflet draws a circle per camera. Green = we treat it as online.
+    Hunt draws a red polyline between cameras where that plate was seen.
+  </div></div>
+  <p>
+    Fetching the list is cheap. <strong>Opening 30 RTSP AI sessions is expensive</strong> — each client gets its
+    own copy of the stream. We only capture the camera you click.
+  </p>
+
+  <h2 id="stream">6. Video streaming path (watch vs AI)</h2>
+  <p>Two jobs need video, and they use different protocols on purpose.</p>
+  <table>
+    <tr><th>Job</th><th>Protocol</th><th>Why</th></tr>
+    <tr>
+      <td>Human watching in the dashboard</td>
+      <td><strong>HLS</strong> over HTTPS 443, proxied as <code>/live/sentinel-4/index.m3u8</code>, played by <strong>hls.js</strong></td>
+      <td>Works through firewalls and Cloudflare. Playlist is AES-128 encrypted; we also proxy <code>enc.key</code> and <code>.ts</code> segments.</td>
+    </tr>
+    <tr>
+      <td>Machine ANPR (OpenCV)</td>
+      <td><strong>RTSP over TCP</strong> to <code>103.250.160.189:8554</code></td>
+      <td>Integrator’s AI path. Frames have PTS timestamps. UDP would rot on NAT.</td>
+    </tr>
+    <tr>
+      <td>Own-feed demo</td>
+      <td>Local <strong>MP4</strong> + HTML5 <code>&lt;video&gt;</code> and FFmpeg frame extract</td>
+      <td>Readable close-up plates when government junctions are too far for OCR.</td>
+    </tr>
+  </table>
+  <p>
+    Official HLS playlists are marked <code>EXT-X-PLAYLIST-TYPE:VOD</code> (a looping recording served like live).
+    Their own portal fakes “now” by seeking <code>currentTime = now % duration</code>. Our player does the same jump.
+  </p>
+  <p>
+    An <strong>iframe</strong> is a webpage inside a webpage. We used to embed
+    <code>live.corp8.cloud/camera/5</code>. That URL is gone, and cookies would not attach from localhost anyway.
+    So iframe is <em>not</em> how live watch works now. HLS proxy + hls.js is.
+  </p>
+
+  <h2 id="anpr">7. Capture → annotated JPEG → events → fire alert</h2>
+  <div class="mermaid">
+flowchart LR
+  A[Click Capture] --> B[OpenCV RTSP TCP or FFmpeg on MP4]
+  B --> C[JPEG stills in data/snapshots/camera_id]
+  C --> D[Click Detect]
+  D --> E[YOLOv8n boxes: car / bike / bus / truck]
+  E --> F[Crop lower part of box]
+  F --> G[RapidOCR reads text]
+  G --> H[events.json row]
+  H --> I{plate in watchlist?}
+  I -->|yes| J[Alert + red banner + beep]
+  I -->|no| K[Normal event list]
+  H --> L[Hunt searches all events]
+  </div>
+  <ol>
+    <li><strong>Capture</strong> (<code>live_capture.py</code> / <code>ingest.py</code>): sample about 1 JPEG per second for a few seconds. Stamp IST time on the frame. Store <code>times.json</code> with PTS-based time, not “when the packet arrived”.</li>
+    <li><strong>Detect</strong> (<code>detect.py</code>): YOLOv8n finds vehicles. We do not OCR the whole 1920×1080 image (too noisy). We crop the lower ~45% of the vehicle box — that is where a plate usually sits.</li>
+    <li><strong>Annotate</strong>: YOLO’s <code>result.plot()</code> draws boxes; we overlay plate text. Saved under <code>data/snapshots/{id}/annotated/</code>. Raw JPEGs may be deleted after analyze to save disk.</li>
+    <li><strong>Normalize plate</strong> (<code>plates.py</code>): <code>GJ-01-AB-1234</code> and <code>gj01ab1234</code> become <code>GJ01AB1234</code>.</li>
+    <li><strong>Fire alert</strong> (<code>alerts.py</code>): if that string is in <code>watchlist.json</code>, the UI banner says STOLEN PLATE and a short beep plays. Alerts are not a separate database — they are the intersection of events ∩ watchlist.</li>
+    <li><strong>Hunt</strong>: officer types a plate. We scan all events, sort by capture time, pin cameras on the map, export CSV.</li>
+  </ol>
+  <div class="call">
+    Why only cameras 04 and 05 had events earlier: Detect was only run on those two official feeds (plus own MP4s).
+    Importing 30 cameras does not run YOLO on all 30.
+  </div>
+
+  <h2 id="images">8. Image and video pieces we actually store</h2>
+  <table>
+    <tr><th>Thing</th><th>Looks like</th><th>Role</th></tr>
+    <tr><td>MP4 file</td><td><code>data/videos/anpr-gate.mp4</code></td><td>Own-feed demo clip (container of encoded video)</td></tr>
+    <tr><td>Raw JPEG frame</td><td><code>snapshots/sentinel-4/frame_0003.jpg</code></td><td>One still grabbed from RTSP/HLS/MP4</td></tr>
+    <tr><td>Annotated JPEG</td><td><code>.../annotated/frame_0003.jpg</code></td><td>Same still + boxes + plate text (evidence)</td></tr>
+    <tr><td>Plate crop</td><td>Not saved as its own file</td><td>Temporary numpy image, lower part of YOLO box, fed to OCR</td></tr>
+    <tr><td>HLS playlist</td><td><code>index.m3u8</code> text file</td><td>Shopping list of video chunks + AES key URL</td></tr>
+    <tr><td>MPEG-TS segment</td><td><code>seg00000.ts</code></td><td>A few seconds of encoded video</td></tr>
+    <tr><td>enc.key</td><td>16 bytes</td><td>AES-128 key so the player can decrypt HLS</td></tr>
+    <tr><td>GIS pin</td><td>Leaflet circle on the map</td><td>Not an image of the street — just lat/lng metadata</td></tr>
+  </table>
+  <p>
+    <strong>Compare:</strong> a live RTSP frame is pixels in RAM (OpenCV <code>numpy</code> array, BGR).
+    A JPEG is compressed for disk. HLS <code>.ts</code> is compressed video for the network.
+    YOLO wants pixels (we pass the JPEG decoded back to an array). OCR wants a tight crop, not the whole junction.
+  </p>
+
+  <h2 id="files">9. Every important file and how they hook together</h2>
+  <h3>Backend (Python)</h3>
+  <table>
+    <tr><th>File</th><th>Job</th><th>Helps whom</th></tr>
+    <tr><td><code>backend/main.py</code></td><td>The front door of the API. Declares routes, CORS, mounts <code>/media</code>.</td><td>Everything. React only hits this process.</td></tr>
+    <tr><td><code>backend/config.py</code></td><td>Reads <code>.env</code>: folders, portal URL, RTSP host, password.</td><td>All modules via <code>settings</code>.</td></tr>
+    <tr><td><code>backend/sentinel.py</code></td><td>Grid login, <code>cameras.json</code>, URL rewrite, TCP probe, cookie jar.</td><td>Import, status, live capture, live proxy.</td></tr>
+    <tr><td><code>backend/store.py</code></td><td>Camera registry CRUD, CSV import, enrich with snapshot counts, gap report.</td><td>Map + list.</td></tr>
+    <tr><td><code>backend/live_capture.py</code></td><td>RTSP TCP sampling with PTS; HLS fallback grab.</td><td>Capture button.</td></tr>
+    <tr><td><code>backend/live_proxy.py</code></td><td>Fetches official m3u8/key/ts with our cookie; rewrites URLs for the browser.</td><td>Video player.</td></tr>
+    <tr><td><code>backend/ingest.py</code></td><td>FFmpeg extracts JPEGs from a local MP4.</td><td>Own-feed cameras.</td></tr>
+    <tr><td><code>backend/detect.py</code></td><td>YOLOv8n + RapidOCR + annotated JPEGs + event rows.</td><td>Detect button.</td></tr>
+    <tr><td><code>backend/events.py</code></td><td>Append/list/clear rows in <code>data/events.json</code>.</td><td>Detect, hunt, alerts.</td></tr>
+    <tr><td><code>backend/watchlist.py</code></td><td>Stolen/wanted plates in <code>watchlist.json</code>.</td><td>Alerts.</td></tr>
+    <tr><td><code>backend/alerts.py</code></td><td><code>build_alerts()</code> and <code>hunt_plate()</code>.</td><td>Red banner + Hunt + CSV.</td></tr>
+    <tr><td><code>backend/plates.py</code></td><td>Strip spaces/dashes, uppercase plate text.</td><td>Watchlist match must not miss <code>GJ-01</code> vs <code>GJ01</code>.</td></tr>
+    <tr><td><code>backend/requirements.txt</code></td><td>Python libraries to pip install.</td><td>Environment setup.</td></tr>
+  </table>
+  <h3>Frontend (React)</h3>
+  <table>
+    <tr><th>File</th><th>Job</th></tr>
+    <tr><td><code>frontend/index.html</code></td><td>Empty shell with <code>&lt;div id="root"&gt;</code>.</td></tr>
+    <tr><td><code>frontend/src/main.jsx</code></td><td>Boots React into that div, loads CSS.</td></tr>
+    <tr><td><code>frontend/src/App.jsx</code></td><td>The whole command screen: state, fetch, hunt, watchlist, buttons.</td></tr>
+    <tr><td><code>frontend/src/CameraMap.jsx</code></td><td>Leaflet map, green/red pins, hunt polyline.</td></tr>
+    <tr><td><code>frontend/src/LiveFeed.jsx</code></td><td>MP4 player for files; hls.js player for official cameras.</td></tr>
+    <tr><td><code>frontend/src/index.css</code></td><td>Dark command-centre look.</td></tr>
+    <tr><td><code>frontend/vite.config.js</code></td><td>Dev server port 5174 + API proxy table.</td></tr>
+  </table>
+  <h3>Data on disk</h3>
+  <table>
+    <tr><th>Path</th><th>Job</th></tr>
+    <tr><td><code>data/cameras.json</code></td><td>Our registry (official + own-feed).</td></tr>
+    <tr><td><code>data/events.json</code></td><td>Every vehicle/plate detection.</td></tr>
+    <tr><td><code>data/watchlist.json</code></td><td>Plates we care about.</td></tr>
+    <tr><td><code>data/sentinel_ingest.json</code></td><td>Cached copy of last catalogue pull.</td></tr>
+    <tr><td><code>data/videos/*.mp4</code></td><td>Own-feed clips (Gate, Paldi, Visat recording).</td></tr>
+    <tr><td><code>data/snapshots/</code></td><td>Raw + annotated JPEGs per camera.</td></tr>
+    <tr><td><code>yolov8n.pt</code></td><td>Downloaded nano YOLO weights (vehicles).</td></tr>
+    <tr><td><code>.env</code></td><td>Local secrets and URLs. Gitignored. Never commit the grid password.</td></tr>
+  </table>
+  <p>
+    Association in one sentence: <code>App.jsx</code> clicks → <code>main.py</code> route →
+    <code>sentinel</code>/<code>live_capture</code>/<code>detect</code> → JSON files →
+    <code>App.jsx</code> re-renders map, events, banner.
+  </p>
+
+  <h2 id="glossary">10. Glossary — every term you asked about</h2>
+
+  <h3>ANPR</h3>
+  <p>
+    <strong>Automatic Number Plate Recognition.</strong> Software that finds a vehicle in a picture, then reads
+    the registration text. We split it: YOLO finds the vehicle, RapidOCR reads the crop. Police use it to match
+    stolen / wanted lists without a human staring at every camera.
+  </p>
+
+  <h3>MediaMTX</h3>
+  <p>
+    An open-source media server that can ingest RTSP and republish as RTSP, HLS, WebRTC, etc.
+    The official Sentinel sandbox behaves like a MediaMTX (or similar) grid. <strong>We do not run MediaMTX ourselves.</strong>
+    We are a client of theirs. Their hub is why one camera can be watched as HLS in a browser and grabbed as RTSP by OpenCV.
+  </p>
+
+  <h3>RTSP</h3>
+  <p>
+    <strong>Real Time Streaming Protocol.</strong> The “live TV cable” language IP cameras have spoken for decades.
+    URL shape: <code>rtsp://host:8554/stream/cam04</code>. There is no rewind file; frames arrive as they are produced
+    (or as the loop plays). We force <strong>TCP</strong> so NAT/firewalls do not drop pieces and create fake “model bugs”.
+  </p>
+
+  <h3>FFmpeg</h3>
+  <p>
+    The Swiss-army knife of video. Decode, encode, sample frames, talk RTSP/HLS.
+    We use it to pull JPEGs from MP4s (<code>ingest.py</code>) and OpenCV uses FFmpeg under the hood for RTSP.
+    You rarely see an FFmpeg window — Python calls it.
+  </p>
+
+  <h3>OpenCV</h3>
+  <p>
+    <strong>Open Source Computer Vision library</strong> (<code>cv2</code>). It is how we
+    <em>open a stream, read a frame as a grid of pixels, write a JPEG, draw text</em>.
+    It is not the plate reader and not the vehicle detector. It is the hands that hold the image.
+  </p>
+
+  <h3>YOLOv8n (we use this — not YOLOv9n)</h3>
+  <p>
+    <strong>YOLO = You Only Look Once</strong>, a family of object detectors. One pass over the image predicts boxes
+    (“there is a car here, confidence 0.91”).
+  </p>
+  <ul>
+    <li><strong>v8</strong> = Ultralytics generation we load from <code>yolov8n.pt</code>.</li>
+    <li><strong>n = nano</strong>: smallest weights, runs on CPU, good enough for a solo hackathon laptop.
+        Larger letters (s/m/l/x) are more accurate and slower.</li>
+    <li><strong>YOLOv9</strong> is a newer paper/family. We did not switch; v8n is what is in the repo.</li>
+  </ul>
+  <p>We keep classes 2, 3, 5, 7 — car, motorcycle, bus, truck. People/faces are out of scope.</p>
+
+  <h3>HLS</h3>
+  <p>
+    <strong>HTTP Live Streaming</strong> (Apple). Video chopped into files a normal HTTPS server can send.
+    A text playlist <code>.m3u8</code> lists <code>.ts</code> chunks. Browsers on Chrome need <strong>hls.js</strong>
+    to play it; Safari can play HLS natively. Their playlists are AES-128 encrypted, so the player must also fetch
+    <code>enc.key</code> with the same login cookie (our proxy does that).
+  </p>
+
+  <h3>iframe</h3>
+  <p>
+    HTML tag that embeds another website. Useful when the other site already has a player.
+    Fragile here: different domain + password cookie + old <code>/camera/id</code> URLs retired.
+    Learning point: iframe ≠ “we integrated the stream”. Real integration is RTSP/HLS with documented URLs.
+  </p>
+
+  <h3>GIS pins</h3>
+  <p>
+    <strong>Geographic Information System</strong> points. Each camera has <code>lat</code> and <code>lng</code>.
+    Leaflet (OpenStreetMap tiles) draws a pin. Model 1 of the hackathon is exactly this: a statewide camera registry
+    on a map, even before live video. Hunt then connects pins into a trail.
+  </p>
+
+  <h3>RapidOCR</h3>
+  <p>
+    Fast on-device OCR (ONNX). After YOLO, we pass the plate-ish crop; RapidOCR returns text + a score.
+    We strip junk characters and regex-match Indian-ish plates. It will fail on distant Paldi-style junctions
+    (letters too few pixels) and succeed on boom-barrier close-ups (our Gate MP4).
+  </p>
+
+  <h3>Related terms you will hear</h3>
+  <table>
+    <tr><th>Term</th><th>Meaning here</th></tr>
+    <tr><td>PTS</td><td>Presentation timestamp inside the stream. Integrator: time from PTS, not wall clock per packet.</td></tr>
+    <tr><td>TCP vs UDP</td><td>TCP retransmits lost packets (we want this for RTSP). UDP is faster but frames rot on bad networks.</td></tr>
+    <tr><td>WHEP / WebRTC</td><td>Low-latency browser preview on port 8889. Catalogue has it; our UI uses HLS instead.</td></tr>
+    <tr><td>Cookie / session</td><td>After login, a token the server sent. We resend it on every catalogue/HLS request.</td></tr>
+    <tr><td>JSON</td><td>Structured text. Our “database” for a solo prototype (not PostgreSQL yet).</td></tr>
+    <tr><td>Leaflet</td><td>JavaScript map library. GIS pins live here.</td></tr>
+    <tr><td>FastAPI / Uvicorn</td><td>Python web framework + server that hosts our REST API.</td></tr>
+    <tr><td>React / Vite</td><td>UI library + dev bundler/hot-reload server.</td></tr>
+    <tr><td>CORS</td><td>Browser rule: a page on :5174 may only call another origin if the API allows it.</td></tr>
+    <tr><td>ONNX</td><td>Portable neural-net format. RapidOCR runs as ONNX, not a giant PyTorch stack.</td></tr>
+    <tr><td>Keyframe / IDR</td><td>A full picture in H.264/H.265. Joining mid-stream causes decoder warnings until the next keyframe — not fatal.</td></tr>
+  </table>
+
+  <h2 id="clicks">11. What each UI action does under the hood</h2>
+  <table>
+    <tr><th>You click</th><th>Frontend</th><th>Backend</th><th>You should see</th></tr>
+    <tr><td>Sign in to grid</td><td><code>POST /sentinel/login</code></td><td>Password → Corp8 cookie</td><td>“Signed in”</td></tr>
+    <tr><td>Fetch Sentinel grid</td><td><code>POST /cameras/sentinel/import</code></td><td>GET cameras.json, upsert 30 rows</td><td>Pins + list grow to ~33</td></tr>
+    <tr><td>Select a camera</td><td>React state <code>selectedId</code></td><td><code>GET /events?camera_id=</code> + HLS <code>/live/{id}/index.m3u8</code></td><td>Player + that camera’s events only</td></tr>
+    <tr><td>Capture frames</td><td><code>POST /cameras/{id}/extract</code></td><td>RTSP TCP ~1 fps JPEGs</td><td>Stills count goes up</td></tr>
+    <tr><td>Detect vehicles + plates</td><td><code>POST /cameras/{id}/analyze</code></td><td>YOLO + OCR + annotated JPEG</td><td>Boxes, event rows, maybe a plate</td></tr>
+    <tr><td>Add watchlist plate</td><td><code>POST /watchlist</code></td><td>Save normalized plate</td><td>If events already match → banner</td></tr>
+    <tr><td>Find trail</td><td><code>GET /hunt?plate=</code></td><td>Filter events, attach lat/lng</td><td>Red line on map + hit list</td></tr>
+    <tr><td>Export CSV</td><td>Download <code>/hunt.csv?plate=</code></td><td>Same hunt, as spreadsheet</td><td>File for jury</td></tr>
+  </table>
+
+  <div class="card">
+    <h3>One-line memory aid</h3>
+    <p>
+      <strong>Catalogue (HTTPS JSON) tells us which cameras exist.
+      HLS (HTTPS) is for watching.
+      RTSP (TCP) is for AI.
+      YOLO finds the vehicle.
+      RapidOCR reads the plate.
+      Watchlist decides if we shout.
+      Hunt draws the route on GIS pins.</strong>
+    </p>
+  </div>
+
+  <footer>
+    Sentinel Command learning page · generated from this repository’s real files
+    (<code>backend/*.py</code>, <code>frontend/src/*</code>, official <code>cctv.corp8.cloud/resource</code> guide).
+    Model 3/4 (VMS federation, face, VAHAN, Kafka, Kubernetes) are roadmap only — not running here.
+  </footer>
+</main>
+</div>
+</body>
+</html>

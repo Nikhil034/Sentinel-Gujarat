@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680">
+  <rect width="1100" height="680" fill="#f8fafc"/>
+  <text x="28" y="36" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Sentinel Command - System Architecture</text>
+  <text x="28" y="58" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64748b">Gujarat Police Innovation Challenge 2026  |  Model 1 GIS + Model 2 unified view, ANPR, hunt</text>
+
+  <!-- lanes -->
+  <rect x="24" y="80" width="340" height="548" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="40" y="108" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#1d4ed8">1. Sentinel / Corp8 (official)</text>
+
+  <rect x="380" y="80" width="340" height="548" rx="10" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="396" y="108" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#15803d">2. Sentinel Command (our app)</text>
+
+  <rect x="736" y="80" width="340" height="548" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="752" y="108" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#c2410c">3. AI pipeline</text>
+
+  <!-- official boxes -->
+  <rect x="52" y="130" width="284" height="58" rx="8" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="68" y="154" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Gujarat CCTV cameras</text>
+  <text x="68" y="174" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">30 live feeds in ingest catalogue</text>
+
+  <rect x="52" y="214" width="284" height="58" rx="8" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="68" y="238" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">MediaMTX</text>
+  <text x="68" y="258" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Official ingest hub</text>
+
+  <rect x="52" y="310" width="284" height="58" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="68" y="334" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">HTTPS HLS :443</text>
+  <text x="68" y="354" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">cctv.corp8.cloud (password gate)</text>
+
+  <rect x="52" y="394" width="284" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="68" y="418" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">RTSP TCP :8554</text>
+  <text x="68" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#b45309">Blocked on public internet</text>
+
+  <rect x="52" y="478" width="284" height="58" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="68" y="502" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">GET /api/ingest</text>
+  <text x="68" y="522" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Camera catalogue + URLs</text>
+
+  <!-- app boxes -->
+  <rect x="408" y="130" width="284" height="58" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="424" y="154" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">React + Leaflet UI</text>
+  <text x="424" y="174" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Map, hunt, live iframe player</text>
+
+  <rect x="408" y="214" width="284" height="58" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="424" y="238" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">FastAPI backend :8000</text>
+  <text x="424" y="258" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">REST API + static snapshots</text>
+
+  <rect x="408" y="310" width="284" height="58" rx="8" fill="#ffffff" stroke="#86efac"/>
+  <text x="424" y="334" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">JSON store</text>
+  <text x="424" y="354" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">cameras.json, events.json, watchlist.json</text>
+
+  <rect x="408" y="394" width="284" height="58" rx="8" fill="#ffffff" stroke="#86efac"/>
+  <text x="424" y="418" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">data/videos</text>
+  <text x="424" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">MP4 clips and screen recordings</text>
+
+  <rect x="408" y="478" width="284" height="58" rx="8" fill="#ffffff" stroke="#86efac"/>
+  <text x="424" y="502" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">data/snapshots</text>
+  <text x="424" y="522" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">JPEG evidence frames</text>
+
+  <!-- ai boxes -->
+  <rect x="764" y="130" width="284" height="58" rx="8" fill="#ffffff" stroke="#fb923c"/>
+  <text x="780" y="154" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">FFmpeg / OpenCV</text>
+  <text x="780" y="174" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Sample ~1 frame per second</text>
+
+  <rect x="764" y="214" width="284" height="58" rx="8" fill="#ffffff" stroke="#fb923c"/>
+  <text x="780" y="238" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">YOLOv8n</text>
+  <text x="780" y="258" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Detect car / bus / truck / bike</text>
+
+  <rect x="764" y="310" width="284" height="58" rx="8" fill="#ffffff" stroke="#fb923c"/>
+  <text x="780" y="334" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">RapidOCR</text>
+  <text x="780" y="354" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Read plate text from crop</text>
+
+  <rect x="764" y="394" width="284" height="58" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+  <text x="780" y="418" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Detection events</text>
+  <text x="780" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">plate + camera + snapshot</text>
+
+  <rect x="764" y="478" width="284" height="58" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+  <text x="780" y="502" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Alerts + Hunt + CSV</text>
+  <text x="780" y="522" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Watchlist match and GIS trail</text>
+
+  <!-- arrows: official vertical -->
+  <line x1="194" y1="188" x2="194" y2="214" stroke="#334155" stroke-width="2"/>
+  <polygon points="188,206 194,214 200,206" fill="#334155"/>
+  <line x1="194" y1="272" x2="194" y2="310" stroke="#334155" stroke-width="2"/>
+  <polygon points="188,302 194,310 200,302" fill="#334155"/>
+  <line x1="194" y1="272" x2="194" y2="394" stroke="#334155" stroke-width="2"/>
+  <polygon points="188,386 194,394 200,386" fill="#334155"/>
+  <line x1="194" y1="272" x2="194" y2="478" stroke="#334155" stroke-width="2"/>
+  <polygon points="188,470 194,478 200,470" fill="#334155"/>
+
+  <!-- arrows: app vertical -->
+  <line x1="550" y1="188" x2="550" y2="214" stroke="#334155" stroke-width="2"/>
+  <polygon points="544,206 550,214 556,206" fill="#334155"/>
+  <line x1="550" y1="272" x2="550" y2="310" stroke="#334155" stroke-width="2"/>
+  <polygon points="544,302 550,310 556,302" fill="#334155"/>
+  <line x1="550" y1="368" x2="550" y2="394" stroke="#334155" stroke-width="2"/>
+  <polygon points="544,386 550,394 556,386" fill="#334155"/>
+  <line x1="550" y1="452" x2="550" y2="478" stroke="#334155" stroke-width="2"/>
+  <polygon points="544,470 550,478 556,470" fill="#334155"/>
+
+  <!-- arrows: ai vertical -->
+  <line x1="906" y1="188" x2="906" y2="214" stroke="#334155" stroke-width="2"/>
+  <polygon points="900,206 906,214 912,206" fill="#334155"/>
+  <line x1="906" y1="272" x2="906" y2="310" stroke="#334155" stroke-width="2"/>
+  <polygon points="900,302 906,310 912,302" fill="#334155"/>
+  <line x1="906" y1="368" x2="906" y2="394" stroke="#334155" stroke-width="2"/>
+  <polygon points="900,386 906,394 912,386" fill="#334155"/>
+  <line x1="906" y1="452" x2="906" y2="478" stroke="#334155" stroke-width="2"/>
+  <polygon points="900,470 906,478 912,470" fill="#334155"/>
+
+  <!-- cross: HLS -> UI (orthogonal, along top of lanes) -->
+  <polyline fill="none" stroke="#2563eb" stroke-width="2" points="336,339 368,339 368,159 408,159"/>
+  <polygon points="400,154 408,159 400,164" fill="#2563eb"/>
+  <text x="342" y="328" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#2563eb">iframe watch</text>
+
+  <!-- cross: ingest -> FastAPI -->
+  <polyline fill="none" stroke="#2563eb" stroke-width="2" points="336,507 368,507 368,243 408,243"/>
+  <polygon points="400,238 408,243 400,248" fill="#2563eb"/>
+  <text x="342" y="496" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#2563eb">import grid</text>
+
+  <!-- videos -> ffmpeg -->
+  <polyline fill="none" stroke="#15803d" stroke-width="2" points="692,423 724,423 724,159 764,159"/>
+  <polygon points="756,154 764,159 756,164" fill="#15803d"/>
+  <text x="698" y="412" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#15803d">file path (works)</text>
+
+  <!-- FastAPI -> events -->
+  <polyline fill="none" stroke="#15803d" stroke-width="2" points="692,243 724,243 724,423 764,423"/>
+  <polygon points="756,418 764,423 756,428" fill="#15803d"/>
+  <text x="698" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#15803d">analyze</text>
+
+  <!-- RTSP dashed to ffmpeg along bottom -->
+  <polyline fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 5" points="336,423 368,423 368,580 906,580 906,536"/>
+  <polygon points="901,544 906,536 911,544" fill="#94a3b8"/>
+  <text x="400" y="572" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#64748b">dashed: RTSP capture when port 8554 is open</text>
+
+  <rect x="24" y="638" width="1052" height="28" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="36" y="657" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#475569">Solid = working. Grid HTTP now requires cctv.corp8.cloud password. Dashed = RTSP :8554 still blocked on public internet.</text>
+</svg>

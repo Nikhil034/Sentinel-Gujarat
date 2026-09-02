@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720">
+  <rect width="1100" height="720" fill="#f8fafc"/>
+  <text x="28" y="36" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Hunt and Watchlist Flow</text>
+  <text x="28" y="58" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64748b">From ANPR detection to stolen-plate alert and cross-camera GIS trail</text>
+
+  <!-- section labels -->
+  <text x="28" y="92" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#c2410c">A. Watchlist alerts</text>
+  <text x="28" y="368" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#1d4ed8">B. Cross-camera hunt</text>
+
+  <!-- A row 1 -->
+  <rect x="28" y="108" width="210" height="70" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="44" y="136" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">1. Extract + Detect</text>
+  <text x="44" y="158" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">YOLO + OCR per camera</text>
+
+  <rect x="298" y="108" width="210" height="70" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+  <text x="314" y="136" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">2. events.json</text>
+  <text x="314" y="158" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">plate, camera, snapshot</text>
+
+  <!-- A row 2 -->
+  <rect x="28" y="220" width="210" height="70" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="44" y="248" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">3. POST /watchlist</text>
+  <text x="44" y="270" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Officer adds stolen plate</text>
+
+  <rect x="298" y="220" width="210" height="70" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="314" y="248" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">4. watchlist.json</text>
+  <text x="314" y="270" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">plate_norm + reason</text>
+
+  <!-- A merge -->
+  <rect x="568" y="164" width="230" height="70" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="584" y="192" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">5. GET /alerts</text>
+  <text x="584" y="214" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">events intersect watchlist</text>
+
+  <rect x="858" y="164" width="214" height="70" rx="8" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+  <text x="874" y="192" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">6. Red banner + beep</text>
+  <text x="874" y="214" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">STOLEN PLATE in UI</text>
+
+  <!-- A arrows -->
+  <line x1="238" y1="143" x2="298" y2="143" stroke="#334155" stroke-width="2"/>
+  <polygon points="290,138 298,143 290,148" fill="#334155"/>
+
+  <line x1="238" y1="255" x2="298" y2="255" stroke="#334155" stroke-width="2"/>
+  <polygon points="290,250 298,255 290,260" fill="#334155"/>
+
+  <polyline fill="none" stroke="#334155" stroke-width="2" points="508,143 538,143 538,184 568,184"/>
+  <polygon points="560,179 568,184 560,189" fill="#334155"/>
+  <text x="514" y="136" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#64748b">normalize plate</text>
+
+  <polyline fill="none" stroke="#334155" stroke-width="2" points="508,255 538,255 538,214 568,214"/>
+  <polygon points="560,209 568,214 560,219" fill="#334155"/>
+  <text x="514" y="272" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#64748b">match</text>
+
+  <line x1="798" y1="199" x2="858" y2="199" stroke="#334155" stroke-width="2"/>
+  <polygon points="850,194 858,199 850,204" fill="#334155"/>
+
+  <!-- B hunt row -->
+  <rect x="28" y="388" width="210" height="70" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="44" y="416" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">7. Officer types plate</text>
+  <text x="44" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Example: GJ01AB1234</text>
+
+  <rect x="298" y="388" width="210" height="70" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="314" y="416" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">8. GET /hunt?plate=</text>
+  <text x="314" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Scan all detection events</text>
+
+  <rect x="568" y="388" width="230" height="70" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="584" y="416" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">9. Enrich with GIS</text>
+  <text x="584" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">lat/lng from cameras.json</text>
+
+  <rect x="858" y="388" width="214" height="70" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="874" y="416" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">10. Leaflet trail</text>
+  <text x="874" y="438" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Pins + hit list on map</text>
+
+  <line x1="238" y1="423" x2="298" y2="423" stroke="#334155" stroke-width="2"/>
+  <polygon points="290,418 298,423 290,428" fill="#334155"/>
+  <line x1="508" y1="423" x2="568" y2="423" stroke="#334155" stroke-width="2"/>
+  <polygon points="560,418 568,423 560,428" fill="#334155"/>
+  <line x1="798" y1="423" x2="858" y2="423" stroke="#334155" stroke-width="2"/>
+  <polygon points="850,418 858,423 850,428" fill="#334155"/>
+
+  <!-- dashed same store -->
+  <line x1="403" y1="178" x2="403" y2="388" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="412" y="330" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#64748b">same event store</text>
+
+  <!-- CSV -->
+  <rect x="568" y="500" width="230" height="70" rx="8" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="584" y="528" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">11. GET /hunt.csv</text>
+  <text x="584" y="550" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Jury evidence export</text>
+
+  <rect x="858" y="500" width="214" height="70" rx="8" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="874" y="528" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#0f172a">12. CSV download</text>
+  <text x="874" y="550" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">plate, camera, snapshot URL</text>
+
+  <line x1="683" y1="458" x2="683" y2="500" stroke="#334155" stroke-width="2"/>
+  <polygon points="678,492 683,500 688,492" fill="#334155"/>
+  <line x1="798" y1="535" x2="858" y2="535" stroke="#334155" stroke-width="2"/>
+  <polygon points="850,530 858,535 850,540" fill="#334155"/>
+
+  <!-- demo sequence -->
+  <rect x="28" y="600" width="1044" height="96" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="44" y="628" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Jury demo sequence</text>
+  <text x="44" y="652" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#334155">1. Detect on gate MP4    2. Add GJ01AB1234 to watchlist    3. Alerts fire</text>
+  <text x="44" y="676" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#334155">4. Hunt shows 26 hits across 4 cameras    5. Export CSV for jury</text>
+</svg>
