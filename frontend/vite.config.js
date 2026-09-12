@@ -15,6 +15,9 @@ export default defineConfig({
       "/hunt": "http://127.0.0.1:8000",
       "/media": "http://127.0.0.1:8000",
       "/live": "http://127.0.0.1:8000",
+      "/reports": "http://127.0.0.1:8000",
+      "/metadata": "http://127.0.0.1:8000",
+      "/index": "http://127.0.0.1:8000",
     },
   },
 });

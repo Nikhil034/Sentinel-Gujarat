@@ -7,7 +7,9 @@ from pathlib import Path
 import cv2
 
 from events import append_events, clear_events
+from plates import normalize_plate
 from store import load_frame_times, prune_camera_media, snapshot_dir
+from watchlist import list_watchlist
 
 VEHICLE_CLASS_IDS = {2, 3, 5, 7}  # car, motorcycle, bus, truck
 PLATE_RE = re.compile(r"[A-Z]{2}\s?-?\s?\d{1,2}\s?-?\s?[A-Z]{0,3}\s?-?\s?\d{3,4}")
@@ -82,6 +84,7 @@ def analyze_frames(camera_id: str, cam: dict) -> dict:
     vehicles = 0
     plates = 0
     times = load_frame_times(camera_id)
+    wanted = {item["plate_norm"] for item in list_watchlist()}
 
     for index, frame_path in enumerate(frames, start=1):
         image = cv2.imread(str(frame_path))
@@ -125,6 +128,13 @@ def analyze_frames(camera_id: str, cam: dict) -> dict:
                 t_sec = index - 1
             captured_at = meta.get("captured_at")
             clock = meta.get("clock") or ("clip" if cam.get("source_type") == "file" else "wall")
+            tags = ["vehicle"]
+            if plate:
+                tags.append("anpr")
+                if normalize_plate(plate) in wanted:
+                    tags.append("watchlist")
+            else:
+                tags.append("unread")
             created.append(
                 {
                     "id": f"{camera_id}-{index}-{vehicles}",
@@ -142,6 +152,7 @@ def analyze_frames(camera_id: str, cam: dict) -> dict:
                     "plate_confidence": round(plate_conf, 3),
                     "snapshot_url": rel,
                     "created_at": datetime.now(timezone.utc).isoformat(),
+                    "tags": tags,
                 }
             )
         cv2.imwrite(str(out_dir / frame_path.name), plotted)

@@ -63,6 +63,10 @@ export default function App() {
   const [gap, setGap] = useState(null);
   const [gridPass, setGridPass] = useState("");
   const [showWall, setShowWall] = useState(false);
+  const [eventTag, setEventTag] = useState("");
+  const [plates, setPlates] = useState([]);
+  const [daily, setDaily] = useState(null);
+  const [cameraIndex, setCameraIndex] = useState([]);
   const lastAlertCount = useRef(0);
 
   const refresh = useCallback(() => {
@@ -77,9 +81,11 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
-  const loadEvents = useCallback((id) => {
+  const loadEvents = useCallback((id, tag) => {
     if (!id) return;
-    fetch(`${API}/events?camera_id=${encodeURIComponent(id)}`)
+    const q = new URLSearchParams({ camera_id: id });
+    if (tag) q.set("tag", tag);
+    fetch(`${API}/events?${q}`)
       .then((r) => r.json())
       .then((e) => setEvents(e.events || []))
       .catch(() => setEvents([]));
@@ -101,6 +107,18 @@ export default function App() {
       .then((r) => r.json())
       .then((g) => setGap(g))
       .catch(() => setGap(null));
+    fetch(`${API}/metadata/plates`)
+      .then((r) => r.json())
+      .then((p) => setPlates(p.plates || []))
+      .catch(() => setPlates([]));
+    fetch(`${API}/reports/daily?date=all`)
+      .then((r) => r.json())
+      .then((d) => setDaily(d))
+      .catch(() => setDaily(null));
+    fetch(`${API}/index/cameras`)
+      .then((r) => r.json())
+      .then((x) => setCameraIndex(x.cameras || []))
+      .catch(() => setCameraIndex([]));
   }, []);
 
   const loadAlerts = useCallback(() => {
@@ -118,8 +136,8 @@ export default function App() {
   }, [refresh, loadWatchlist, loadAlerts, loadPath]);
 
   useEffect(() => {
-    loadEvents(selectedId);
-  }, [selectedId, loadEvents]);
+    loadEvents(selectedId, eventTag);
+  }, [selectedId, eventTag, loadEvents]);
 
   useEffect(() => {
     if (alerts.length > lastAlertCount.current) beep();
@@ -189,8 +207,9 @@ export default function App() {
       if (!res.ok) throw new Error(body.detail || "Analyze failed");
       setNote(`${body.vehicles || 0} vehicles · ${body.plates || 0} plates`);
       refresh();
-      loadEvents(id);
+      loadEvents(id, eventTag);
       loadAlerts();
+      loadPath();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -273,7 +292,25 @@ export default function App() {
     }
   }
 
+  async function closeDay() {
+    setBusy("report");
+    try {
+      const res = await fetch(`${API}/reports/close-day`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || "Close-day failed");
+      setNote(
+        `End-of-day logs saved. All recorded days: ${body.totals?.events || 0} events · ${body.totals?.plates || 0} plates · ${body.files?.length || 0} files (daily CSVs, frame logs, ANPR index, gap PDF).`
+      );
+      loadPath();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   const online = cameras.filter((c) => c.status === "online").length;
+  const cityMax = Math.max(1, ...Object.values(gap?.by_city || { x: 1 }));
 
   return (
     <div className="layout">
@@ -309,13 +346,13 @@ export default function App() {
       )}
       {gap && (
         <p className="gap-line">
-          Coverage: {gap.official_grid} official · {gap.own_recorded} own-feed · cities{" "}
-          {Object.entries(gap.by_city || {})
-            .map(([city, n]) => `${city} (${n})`)
-            .join(", ")}
-          {gap.unlocated?.length ? ` · ${gap.unlocated.length} unlocated pins` : ""}
+          Coverage: {gap.official_grid} official · {gap.own_recorded} own-feed ·{" "}
+          {gap.silent?.length || 0} silent · {gap.unlocated?.length || 0} unlocated ·{" "}
+          {gap.no_anpr?.length || 0} no plate yet
           {" · "}
-          <a href={`${API}/cameras.csv`}>Export registry CSV</a>
+          <a href={`${API}/cameras.csv`}>Registry CSV</a>
+          {" · "}
+          <a href={`${API}/cameras/gap.csv`}>Gap analysis CSV</a>
         </p>
       )}
       {error && <p className="warn">{error}</p>}
@@ -326,7 +363,14 @@ export default function App() {
         selectedId={selected?.id}
         onSelect={setSelectedId}
         trail={hunt?.cameras || []}
+        gapIds={{ unlocated: gap?.unlocated_ids || [], silent: gap?.silent_ids || [] }}
       />
+      <p className="legend">
+        <span className="swatch" style={{ background: "#5ee0a0" }} /> online
+        <span className="swatch" style={{ background: "#f07178" }} /> offline
+        <span className="swatch" style={{ background: "#f0c674" }} /> unlocated
+        <span className="swatch" style={{ background: "#9ecbff" }} /> silent (no Detect yet)
+      </p>
 
       <div className="ops">
         <form className="card ops-card" onSubmit={addPlate}>
@@ -389,6 +433,175 @@ export default function App() {
             </a>
           </p>
         </form>
+      </div>
+
+      {gap && (
+        <div className="card gap-card">
+          <strong>Gap analysis — Gujarat Police coverage view</strong>
+          <p className="sub">{gap.note}</p>
+          <div className="kpis">
+            <div className="kpi">
+              <b>{gap.total}</b>
+              <span>registered</span>
+            </div>
+            <div className="kpi">
+              <b>{gap.official_grid}</b>
+              <span>official grid</span>
+            </div>
+            <div className="kpi">
+              <b>{gap.own_recorded}</b>
+              <span>own-feed</span>
+            </div>
+            <div className="kpi silent">
+              <b>{gap.silent?.length || 0}</b>
+              <span>silent</span>
+            </div>
+            <div className="kpi gold">
+              <b>{gap.unlocated?.length || 0}</b>
+              <span>unlocated</span>
+            </div>
+            <div className="kpi warn">
+              <b>{gap.no_anpr?.length || 0}</b>
+              <span>no plate</span>
+            </div>
+          </div>
+          <div className="bars">
+            {Object.entries(gap.by_city || {}).map(([city, n]) => (
+              <div className="bar-row" key={city}>
+                <span>{city}</span>
+                <div className="bar-track">
+                  <div className="bar-fill" style={{ width: `${(100 * n) / cityMax}%` }} />
+                </div>
+                <em>{n}</em>
+              </div>
+            ))}
+          </div>
+          <p className="gap-line">
+            Departments:{" "}
+            {Object.entries(gap.by_department || {})
+              .map(([d, n]) => `${d} (${n})`)
+              .join(" · ")}
+          </p>
+          <div className="gap-cols">
+            <div>
+              <strong>Silent</strong>
+              <ul>
+                {(gap.silent || []).slice(0, 8).map((c) => (
+                  <li key={c.id}>{c.name}</li>
+                ))}
+                {(gap.silent || []).length > 8 && <li>… +{gap.silent.length - 8} more</li>}
+              </ul>
+            </div>
+            <div>
+              <strong>Unlocated</strong>
+              <ul>
+                {(gap.unlocated || []).map((c) => (
+                  <li key={c.id}>{c.name}</li>
+                ))}
+                {(gap.unlocated || []).length === 0 && <li>none</li>}
+              </ul>
+            </div>
+            <div>
+              <strong>No plate read</strong>
+              <ul>
+                {(gap.no_anpr || []).map((c) => (
+                  <li key={c.id}>
+                    {c.name} ({c.events})
+                  </li>
+                ))}
+                {(gap.no_anpr || []).length === 0 && <li>none</li>}
+              </ul>
+            </div>
+          </div>
+          <p>
+            <a className="csv" href={`${API}/cameras/gap.pdf`} target="_blank" rel="noreferrer">
+              Download gap analysis PDF
+            </a>
+            <a className="csv" href={`${API}/cameras/gap.csv`}>
+              Gap CSV
+            </a>
+          </p>
+        </div>
+      )}
+
+      <div className="card reports-card">
+        <strong>Daily logs (end of day)</strong>
+        <p className="sub">
+          Durable log is CSV, not 24-hour video. Close the day to write one activity sheet + one frame-log sheet
+          per IST date under <code>data/reports/</code>. Keep the last 8 annotated JPEGs as evidence. Departmental
+          NVRs remain the video archive.
+        </p>
+        {daily?.totals && (
+          <p className="ok">
+            {daily.date === "all" ? "All recorded days" : `IST ${daily.date}`}: {daily.totals.events} events ·{" "}
+            {daily.totals.plates} plates · {daily.totals.watchlist_hits} watchlist hits · {daily.totals.silent}{" "}
+            silent cameras
+          </p>
+        )}
+        <p>
+          <a className="csv" href={`${API}/reports/daily.csv`}>
+            Today activity CSV
+          </a>{" "}
+          <a className="csv" href={`${API}/reports/daily.csv?date=all`}>
+            All-days activity CSV
+          </a>{" "}
+          <a className="csv" href={`${API}/reports/frames.csv?date=all`}>
+            Frame log CSV
+          </a>{" "}
+          <a className="csv" href={`${API}/metadata/plates.csv`}>
+            ANPR metadata CSV
+          </a>{" "}
+          <a className="csv" href={`${API}/index/cameras.csv`}>
+            Camera index CSV
+          </a>{" "}
+          <button type="button" disabled={!!busy} onClick={closeDay}>
+            {busy === "report" ? "Writing logs…" : "Close day — write CSVs + gap PDF"}
+          </button>
+        </p>
+        {plates.length > 0 && (
+          <div className="plate-index">
+            <strong>ANPR metadata index</strong>
+            {plates.slice(0, 8).map((p) => (
+              <p key={p.plate}>
+                <code>{p.plate}</code> · {p.hit_count} hits · {p.cameras?.length || 0} cameras
+                {p.watchlist ? " · WATCHLIST" : ""}
+                {p.first_seen ? ` · first ${p.first_seen.slice(0, 10)}` : ""}
+              </p>
+            ))}
+          </div>
+        )}
+        {cameraIndex.some((c) => c.event_count > 0) && (
+          <div className="plate-index">
+            <strong>Camera-wise index</strong>
+            <table className="index-table">
+              <thead>
+                <tr>
+                  <th>Camera</th>
+                  <th>City</th>
+                  <th>Events</th>
+                  <th>ANPR</th>
+                  <th>Unread</th>
+                  <th>Watchlist</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cameraIndex
+                  .filter((c) => c.event_count > 0)
+                  .sort((a, b) => b.event_count - a.event_count)
+                  .map((c) => (
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
+                      <td>{c.city || "—"}</td>
+                      <td>{c.event_count}</td>
+                      <td>{c.anpr}</td>
+                      <td>{c.unread}</td>
+                      <td>{c.watchlist}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="toolbar">
@@ -491,15 +704,29 @@ export default function App() {
 
             {events.length > 0 && (
               <div className="events">
-                <strong>Events</strong>
+                <strong>Camera index — events</strong>
+                <p className="tag-row">
+                  {["", "vehicle", "anpr", "unread", "watchlist"].map((t) => (
+                    <button
+                      key={t || "all"}
+                      type="button"
+                      className={eventTag === t ? "tag on" : "tag"}
+                      onClick={() => setEventTag(t)}
+                    >
+                      {t || "all"}
+                    </button>
+                  ))}
+                </p>
                 {events.map((ev) => {
                   const plate = (ev.plate || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
                   const hot = plate && wanted.has(plate);
+                  const tags = ev.tags || [];
                   return (
                     <p key={ev.id} className={hot ? "hot" : ""}>
                       {eventWhen(ev)} · {ev.label}
                       {ev.plate ? ` · ${ev.plate}` : " · plate unread"}
                       {hot ? " · WATCHLIST" : ""}
+                      {tags.length > 0 && <span className="muted"> · {tags.join(", ")}</span>}
                     </p>
                   );
                 })}

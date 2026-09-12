@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     videos_dir: Path = Path("data/videos")
     snapshots_dir: Path = Path("data/snapshots")
+    reports_dir: Path = Path("data/reports")
     sample_camera_name: str = "Cam-YT-01"
     sample_video: Path = Path("data/videos/sample.mp4")
     api_host: str = "0.0.0.0"
@@ -30,7 +31,7 @@ class Settings(BaseSettings):
     snapshot_keep_file_frames: int = 24
     delete_raw_after_analyze: bool = True
 
-    @field_validator("videos_dir", "snapshots_dir", "sample_video", mode="before")
+    @field_validator("videos_dir", "snapshots_dir", "reports_dir", "sample_video", mode="before")
     @classmethod
     def resolve_under_root(cls, value):
         path = Path(value)
@@ -42,3 +43,4 @@ class Settings(BaseSettings):
 settings = Settings()
 settings.videos_dir.mkdir(parents=True, exist_ok=True)
 settings.snapshots_dir.mkdir(parents=True, exist_ok=True)
+settings.reports_dir.mkdir(parents=True, exist_ok=True)

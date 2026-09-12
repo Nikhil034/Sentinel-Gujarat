@@ -13,6 +13,22 @@ from config import settings
 from detect import analyze_frames
 from events import list_events
 from live_capture import extract_camera
+from gap_pdf import build_gap_pdf
+from reports import (
+    activity_csv,
+    anpr_index,
+    camera_index,
+    camera_index_csv,
+    close_day,
+    daily_activity,
+    frame_log,
+    frames_csv,
+    gap_analysis_csv,
+    plates_csv,
+    storage_policy,
+    tagged_events,
+    today_ist,
+)
 from live_proxy import live_asset
 from sentinel import auth_status, import_ingest, login as sentinel_login, probe_path
 from store import (
@@ -35,7 +51,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Sentinel Command", version="0.8.0", lifespan=lifespan)
+app = FastAPI(title="Sentinel Command", version="0.9.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -138,6 +154,24 @@ def cameras_gap():
     return gap_report()
 
 
+@app.get("/cameras/gap.csv")
+def cameras_gap_csv():
+    return Response(
+        content=gap_analysis_csv(gap_report()),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="gap-analysis.csv"'},
+    )
+
+
+@app.get("/cameras/gap.pdf")
+def cameras_gap_pdf():
+    return Response(
+        content=build_gap_pdf(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="gap-analysis.pdf"'},
+    )
+
+
 @app.get("/cameras.csv")
 def cameras_csv():
     cams = [enrich(c) for c in list_cameras()]
@@ -223,8 +257,80 @@ def extract(camera_id: str, fps: float = 1.0, duration: float = 12.0):
 
 
 @app.get("/events")
-def events(camera_id: str | None = None):
+def events(camera_id: str | None = None, tag: str | None = None, day: str | None = None):
+    if tag or day:
+        return {"events": tagged_events(camera_id, tag=tag, day=day)}
     return {"events": list_events(camera_id)}
+
+
+@app.get("/metadata/plates")
+def metadata_plates():
+    return anpr_index()
+
+
+@app.get("/metadata/plates.csv")
+def metadata_plates_csv():
+    payload = anpr_index()
+    return Response(
+        content=plates_csv(payload),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="anpr-metadata.csv"'},
+    )
+
+
+@app.get("/index/cameras")
+def index_cameras():
+    return camera_index()
+
+
+@app.get("/index/cameras.csv")
+def index_cameras_csv():
+    return Response(
+        content=camera_index_csv(camera_index()),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="camera-index.csv"'},
+    )
+
+
+@app.get("/reports/policy")
+def report_policy():
+    return storage_policy()
+
+
+@app.get("/reports/gap.pdf")
+def report_gap_pdf():
+    return cameras_gap_pdf()
+
+
+@app.get("/reports/daily")
+def report_daily(date: str | None = None):
+    return daily_activity(date or today_ist())
+
+
+@app.get("/reports/daily.csv")
+def report_daily_csv(date: str | None = None):
+    day = date or today_ist()
+    payload = daily_activity(day)
+    return Response(
+        content=activity_csv(payload),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="daily-{day}.csv"'},
+    )
+
+
+@app.get("/reports/frames.csv")
+def report_frames_csv(date: str | None = None):
+    day = date or today_ist()
+    return Response(
+        content=frames_csv(frame_log(day)),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="frames-{day}.csv"'},
+    )
+
+
+@app.post("/reports/close-day")
+def report_close_day(date: str | None = None):
+    return close_day(date or today_ist())
 
 
 @app.get("/watchlist")

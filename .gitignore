@@ -5,6 +5,7 @@ venv/
 __pycache__/
 *.pyc
 node_modules/
+docs/jury-pack/node_modules/
 dist/
 data/videos/*.mp4
 data/videos/*.mkv
@@ -16,6 +17,9 @@ models/
 data/snapshots/**
 !data/snapshots/.gitkeep
 !data/videos/.gitkeep
+data/reports/*.csv
+data/reports/*.pdf
+!data/reports/.gitkeep
 .DS_Store
 *.log
 .python-version

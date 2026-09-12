@@ -84,6 +84,11 @@ def prune_camera_media(camera_id: str, *, after_analyze: bool = False) -> None:
     if after_analyze and settings.delete_raw_after_analyze:
         for raw in folder.glob("frame_*.jpg"):
             raw.unlink(missing_ok=True)
+    else:
+        keep_raw = max(1, settings.snapshot_keep_file_frames)
+        raws = sorted(folder.glob("frame_*.jpg"))
+        for old in raws[:-keep_raw]:
+            old.unlink(missing_ok=True)
     keep = max(1, settings.snapshot_keep_annotated)
     annotated = sorted((folder / "annotated").glob("frame_*.jpg"))
     for old in annotated[:-keep]:
@@ -284,24 +289,42 @@ def ensure_demo_registry() -> list[dict]:
 
 
 def gap_report() -> dict:
-    """Model 1 gap-analysis: coverage by city, live vs recorded, unlocated pins."""
+    """Model 1 gap-analysis for Gujarat Police: coverage, silent cameras, missing plates."""
+    from collections import defaultdict
+
+    from events import list_events
+
     cams = [enrich(c) for c in list_cameras()]
+    evs = list_events()
+    by_cam: dict[str, list] = defaultdict(list)
+    for e in evs:
+        by_cam[e.get("camera_id") or ""].append(e)
     by_city: dict[str, int] = {}
+    by_department: dict[str, int] = {}
     unlocated = []
     no_codec = []
     official = []
     recorded = []
+    silent = []
+    no_anpr = []
     for cam in cams:
         city = cam.get("city") or "Unknown"
+        dept = cam.get("department") or "Unknown"
         by_city[city] = by_city.get(city, 0) + 1
+        by_department[dept] = by_department.get(dept, 0) + 1
         if abs(float(cam.get("lat") or 0) - 22.2587) < 0.0001 and abs(float(cam.get("lng") or 0) - 71.1924) < 0.0001:
-            unlocated.append(cam["id"])
+            unlocated.append({"id": cam["id"], "name": cam.get("name"), "location": cam.get("location")})
         if cam.get("source_type") != "file" and not cam.get("codec"):
             no_codec.append(cam["id"])
         if str(cam.get("id", "")).startswith("sentinel-"):
             official.append(cam["id"])
         if cam.get("source_type") == "file":
             recorded.append(cam["id"])
+        cam_ev = by_cam.get(cam["id"]) or []
+        if not cam_ev:
+            silent.append({"id": cam["id"], "name": cam.get("name"), "city": cam.get("city")})
+        elif not any(e.get("plate") for e in cam_ev):
+            no_anpr.append({"id": cam["id"], "name": cam.get("name"), "events": len(cam_ev)})
     online = sum(1 for c in cams if c["status"] == "online")
     return {
         "total": len(cams),
@@ -310,10 +333,17 @@ def gap_report() -> dict:
         "official_grid": len(official),
         "own_recorded": len(recorded),
         "by_city": dict(sorted(by_city.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "by_department": dict(sorted(by_department.items(), key=lambda kv: (-kv[1], kv[0]))),
         "unlocated": unlocated,
+        "unlocated_ids": [u["id"] for u in unlocated],
+        "silent": silent,
+        "silent_ids": [s["id"] for s in silent],
+        "no_anpr": no_anpr,
         "no_codec": no_codec,
         "note": (
-            "Phase 1 sandbox publishes ~30 official cameras. "
-            "Statewide target is ~80,000. Unlocated pins use a Gujarat centroid until official lat/lng exist."
+            "Unlocated pins use a Gujarat centroid until official coordinates exist. "
+            "Silent cameras have no Detect events yet. "
+            "No-ANPR cameras have vehicles but no readable plate. "
+            "Sandbox publishes ~30 official cameras; statewide target is ~80,000."
         ),
     }

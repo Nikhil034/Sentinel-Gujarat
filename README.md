@@ -35,7 +35,13 @@ npm run dev
 | API health | http://localhost:8000/health |
 | OpenAPI | http://localhost:8000/docs |
 | Learning page (architecture, files, terms) | `docs/sentinel-learning.html` |
-| Gap report | http://localhost:8000/cameras/gap |
+| Jury pack (PPT, HLD PDF, output report, demo script) | `docs/jury-pack/` |
+| Gap report (JSON) | http://localhost:8000/cameras/gap |
+| Gap analysis PDF (for Gujarat Police) | http://localhost:8000/cameras/gap.pdf |
+| Daily activity CSV | http://localhost:8000/reports/daily.csv?date=all |
+| Frame log CSV | http://localhost:8000/reports/frames.csv?date=all |
+| ANPR metadata CSV | http://localhost:8000/metadata/plates.csv |
+| Camera index CSV | http://localhost:8000/index/cameras.csv |
 
 ## Test script (8 minutes)
 
@@ -92,3 +98,17 @@ GET /hunt?plate=                → GIS trail + CSV
 - ANPR is a **short sample** per camera, not a 24h DVR and not a continuous 30-camera worker.
 - Model 3 (VMS federation) and Model 4 (central VMS, face, VAHAN) are roadmap only.
 - Persistence is JSON files (solo speed). PostgreSQL + PostGIS is the scale path in `HLD.md`.
+
+## Daily logs and storage (what we keep)
+
+This app is **not** a DVR. Departmental NVRs keep the video. Sentinel Command keeps **metadata**.
+
+| Keep every day | Do not keep here |
+|---|---|
+| `data/reports/daily-YYYY-MM-DD.csv` — one row per camera (events, plates, watchlist, notes) | 24-hour video |
+| `data/reports/daily-all.csv` — rollup across recorded IST days | Raw extract JPEGs after Detect (deleted automatically) |
+| `data/reports/frames-YYYY-MM-DD.csv` — one row per sampled frame | Unbounded snapshot folders |
+| `anpr-metadata.csv` + `camera-index.csv` | |
+| Last **8** annotated JPEGs per camera (evidence window) | |
+
+In the UI: **Close day — write CSVs + gap PDF**. That writes the sheets above plus `gap-analysis.pdf` for Control Room / GIS staff. Event tags: `vehicle`, `anpr`, `unread`, `watchlist`. Filter them on the camera detail pane.
